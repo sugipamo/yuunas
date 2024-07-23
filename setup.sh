@@ -1,47 +1,5 @@
 #!/bin/bash
 
-# 引数の処理
-GATEWAY4=""
-GATEWAY6=""
-
-while getopts ":4:6:" opt; do
-  case $opt in
-    4)
-      GATEWAY4=$OPTARG
-      ;;
-    6)
-      GATEWAY6=$OPTARG
-      ;;
-    \?)
-      echo "Invalid option: -$OPTARG" >&2
-      exit 1
-      ;;
-  esac
-done
-
-shift $((OPTIND-1))
-
-# インターネット接続が確認できるネットワークインターフェースを取得
-INTERFACE=""
-
-for iface in $(ip link show | grep -oP '(?<=: )[a-zA-Z0-9_-]+(?=:)' | head -n 10); do
-    if ping -c 1 -I $iface 8.8.8.8 &> /dev/null; then
-        INTERFACE=$iface
-        break
-    fi
-done
-
-if [ -z "$INTERFACE" ]; then
-    echo "No network interface with internet access found. Please check your network setup."
-    exit 1
-fi
-
-echo "Using network interface: $INTERFACE"
-
-# 自動的にゲートウェイアドレスを取得
-GATEWAY4=$(ip route | grep default | awk '{print $3}')
-GATEWAY6=$(ip -6 route | grep default | awk '{print $3}')
-
 # 更新と基本パッケージのインストール
 sudo apt update
 sudo apt upgrade -y
@@ -80,14 +38,33 @@ sudo sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' $SSHD_CO
 sudo sed -i 's/#PermitEmptyPasswords no/PermitEmptyPasswords no/' $SSHD_CONFIG
 sudo sed -i 's/#ChallengeResponseAuthentication yes/ChallengeResponseAuthentication no/' $SSHD_CONFIG
 
-# IPv6のみをリッスンするように設定
-echo "AddressFamily inet6" | sudo tee -a $SSHD_CONFIG
-
 # 設定を反映
 sudo systemctl restart ssh
 
 # 静的IPの設定
 NETPLAN_CONFIG="/etc/netplan/01-netcfg.yaml"
+
+# 現在のネットワークインターフェース名を取得
+INTERFACE=$(ip link show | grep -oP '(?<=: )[a-zA-Z0-9_-]+(?=:)' | head -n 1)
+
+if [ -z "$INTERFACE" ]; then
+    echo "No network interface found. Please check your network setup."
+    exit 1
+fi
+
+# ゲートウェイアドレスの取得
+GATEWAY4=$(ip route | grep default | grep -oP '(?<=default via )[0-9.]+')
+GATEWAY6=$(ip -6 route | grep default | grep -oP '(?<=default via )[a-fA-F0-9:]+')
+
+if [ -z "$GATEWAY4" ]; then
+    echo "No IPv4 gateway found. Please check your network setup."
+    exit 1
+fi
+
+if [ -z "$GATEWAY6" ]; then
+    echo "No IPv6 gateway found. Please check your network setup."
+    exit 1
+fi
 
 # 設定ファイルのバックアップ
 sudo cp $NETPLAN_CONFIG ${NETPLAN_CONFIG}.bak
@@ -100,15 +77,11 @@ network:
     $INTERFACE:
       addresses:
         - 192.168.1.100/24
-        - 2001:db8::100/64
       gateway4: $GATEWAY4
-      gateway6: $GATEWAY6
       nameservers:
         addresses:
           - 8.8.8.8
           - 8.8.4.4
-          - 2001:4860:4860::8888
-          - 2001:4860:4860::8844
 EOF"
 
 # 設定の適用
