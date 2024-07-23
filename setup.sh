@@ -37,7 +37,7 @@ sudo systemctl enable ssh
 INTERFACE="enp0s3" 
 
 # 静的IPの設定
-NETPLAN_CONFIG="/etc/netplan/99-netcfg.yaml"
+NETPLAN_CONFIG="/etc/netplan/99_config.yaml"
 
 # 設定ファイルのバックアップ
 sudo cp $NETPLAN_CONFIG ${NETPLAN_CONFIG}.bak
@@ -48,7 +48,6 @@ network:
   version: 2
   ethernets:
     $INTERFACE:
-      dhcp4: false
       addresses:
         - 192.168.1.100/24
       nameservers:
