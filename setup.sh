@@ -34,32 +34,13 @@ sudo systemctl start ssh
 sudo systemctl enable ssh
 
 # インターネット接続が確認できるネットワークインターフェースを取得
-INTERFACE=""
-
-for iface in $(ip link show | grep -oP '(?<=: )[a-zA-Z0-9_-]+(?=:)' | head -n 10); do
-    if ping -c 1 -I $iface 8.8.8.8 &> /dev/null; then
-        INTERFACE=$iface
-        break
-    fi
-done
-
-if [ -z "$INTERFACE" ]; then
-    echo "No network interface with internet access found. Please check your network setup."
-    exit 1
-fi
-
-echo "Using network interface: $INTERFACE"
+INTERFACE="enp0s3" # インターフェース名を適切に設定
 
 # ゲートウェイアドレスの取得
-GATEWAY4=$(ip route | grep default | grep -oP '(?<=default via )[0-9.]+')
-
-if [ -z "$GATEWAY4" ]; then
-    echo "No IPv4 gateway found. Please check your network setup."
-    exit 1
-fi
+GATEWAY4="192.168.0.1" # 適切なゲートウェイアドレスに設定
 
 # 静的IPの設定
-NETPLAN_CONFIG="/etc/netplan/01-netcfg.yaml"
+NETPLAN_CONFIG="/etc/netplan/99-netcfg.yaml"
 
 # 設定ファイルのバックアップ
 sudo cp $NETPLAN_CONFIG ${NETPLAN_CONFIG}.bak
@@ -72,7 +53,7 @@ network:
     $INTERFACE:
       addresses:
         - 192.168.1.100/24
-      gateway4: 192.168.0.1
+      gateway4: $GATEWAY4
       nameservers:
         addresses:
           - 8.8.8.8
