@@ -1,0 +1,1 @@
+curl https://raw.githubusercontent.com/sugipamo/yuunas/main/setup.sh

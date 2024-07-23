@@ -55,14 +55,6 @@ sudo systemctl restart ssh
 # 静的IPの設定
 NETPLAN_CONFIG="/etc/netplan/01-netcfg.yaml"
 
-# 現在のネットワークインターフェース名を取得
-INTERFACE=$(ip link show | grep -oP '(?<=: )[a-zA-Z0-9_-]+(?=:)' | head -n 1)
-
-if [ -z "$INTERFACE" ]; then
-    echo "No network interface found. Please check your network setup."
-    exit 1
-fi
-
 # 設定ファイルのバックアップ
 sudo cp $NETPLAN_CONFIG ${NETPLAN_CONFIG}.bak
 
@@ -98,12 +90,6 @@ cat $NETPLAN_CONFIG
 # インターフェースの状態を確認
 echo "Network interfaces status:"
 ip a
-
-# NetworkManagerの設定（オプション）
-NM_CONFIG="/etc/NetworkManager/NetworkManager.conf"
-sudo cp $NM_CONFIG ${NM_CONFIG}.bak
-echo -e "[main]\nplugins=ifupdown,keyfile\n[ifupdown]\nmanaged=false" | sudo tee $NM_CONFIG
-sudo systemctl restart NetworkManager
 
 # Gitリポジトリのクローン
 REPO_URL="https://github.com/sugipamo/yuunas"
