@@ -48,12 +48,9 @@ network:
   version: 2
   ethernets:
     $INTERFACE:
-      addresses:
-        - 192.168.1.100/24
+      addresses: [192.168.1.70/24]
       nameservers:
-        addresses:
-          - 8.8.8.8
-          - 8.8.4.4
+        addresses: [192.168.1.1, 8.8.8.8, 8.8.4.4]
 EOF"
 
 chmod 600 $NETPLAN_CONFIG
@@ -71,11 +68,6 @@ if [ ! -d "$CLONE_DIR" ]; then
 else
     echo "Directory $CLONE_DIR already exists. Skipping git clone."
 fi
-
-# ディレクトリと設定ファイルの準備（オプション）
-mkdir -p ~/yuunas_work/certs
-touch ~/yuunas_work/certs/nginx-selfsigned.crt
-touch ~/yuunas_work/certs/nginx-selfsigned.key
 
 # sshdの設定変更
 SSHD_CONFIG="/etc/ssh/sshd_config"
