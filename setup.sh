@@ -46,16 +46,9 @@ network:
           - 192.168.0.1
           - 8.8.8.8
           - 8.8.4.4
-      dhcp6: false
-      addresses:
-        - 2001:db8::100/64
-      nameservers:
-        addresses:
-          - 2001:4860:4860::8888
-          - 2001:4860:4860::8844
 EOF"
 
-chmod 644 $NETPLAN_CONFIG
+chmod 600 $NETPLAN_CONFIG
 
 # 設定の適用
 sudo netplan apply
@@ -68,9 +61,7 @@ sudo cp $SSHD_CONFIG ${SSHD_CONFIG}.bak
 
 # IPv6のみSSHを受け付けるように設定
 sudo bash -c "cat >> $SSHD_CONFIG <<EOF
-# SSH over IPv6 only
 Port 2458
-AddressFamily inet6
 ListenAddress ::
 
 PermitRootLogin no
@@ -84,7 +75,6 @@ sudo systemctl restart ssh
 
 # UFWの設定
 sudo ufw allow 2458/tcp
-sudo ufw allow from any to any port 2458 proto tcp
 sudo ufw enable
 
 echo "Setup complete. Please log out and log back in for Docker group changes to take effect."
