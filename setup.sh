@@ -5,10 +5,17 @@ sudo apt update
 sudo apt upgrade -y
 sudo apt install -y curl gnupg lsb-release
 
-# Dockerのインストール
+# Dockerのリポジトリを追加
+DOCKER_LIST_FILE="/etc/apt/sources.list.d/docker.list"
+echo "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee $DOCKER_LIST_FILE
+
+# DockerのGPGキーを追加
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+
+# パッケージリストの更新
 sudo apt update
+
+# Dockerのインストール
 sudo apt install -y docker-ce docker-ce-cli containerd.io
 sudo systemctl start docker
 sudo systemctl enable docker
@@ -65,7 +72,7 @@ network:
     $INTERFACE:
       addresses:
         - 192.168.1.100/24
-      gateway4: $GATEWAY4
+      gateway4: 192.168.0.1
       nameservers:
         addresses:
           - 8.8.8.8
