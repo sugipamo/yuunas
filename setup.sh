@@ -69,11 +69,16 @@ SSHD_CONFIG="/etc/ssh/sshd_config"
 # 設定のバックアップ
 sudo cp $SSHD_CONFIG ${SSHD_CONFIG}.bak
 
-# 設定の変更
-sudo sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin no/' $SSHD_CONFIG
-sudo sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' $SSHD_CONFIG
-sudo sed -i 's/#PermitEmptyPasswords no/PermitEmptyPasswords no/' $SSHD_CONFIG
-sudo sed -i 's/#ChallengeResponseAuthentication yes/ChallengeResponseAuthentication no/' $SSHD_CONFIG
+sudo bash -c "cat >> $SSHD_CONFIG <<EOF
+Port 2458
+# AddressFamily inet6
+# ListenAddress ::
+
+PermitRootLogin no
+PasswordAuthentication yes
+PermitEmptyPasswords no
+ChallengeResponseAuthentication no
+EOF"
 
 # 設定を反映
 sudo systemctl restart ssh
