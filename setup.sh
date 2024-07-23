@@ -26,13 +26,22 @@ sudo apt install -y openssh-server
 sudo systemctl start ssh
 sudo systemctl enable ssh
 
-# 現在のネットワークインターフェース名を取得
-INTERFACE=$(ip link show | grep -oP '(?<=: )[a-zA-Z0-9_-]+(?=:)' | head -n 1)
+# インターネット接続が確認できるネットワークインターフェースを取得
+INTERFACE=""
+
+for iface in $(ip link show | grep -oP '(?<=: )[a-zA-Z0-9_-]+(?=:)' | head -n 10); do
+    if ping -c 1 -I $iface 8.8.8.8 &> /dev/null; then
+        INTERFACE=$iface
+        break
+    fi
+done
 
 if [ -z "$INTERFACE" ]; then
-    echo "No network interface found. Please check your network setup."
+    echo "No network interface with internet access found. Please check your network setup."
     exit 1
 fi
+
+echo "Using network interface: $INTERFACE"
 
 # ゲートウェイアドレスの取得
 GATEWAY4=$(ip route | grep default | grep -oP '(?<=default via )[0-9.]+')
