@@ -84,5 +84,6 @@ EOF"
 sudo systemctl restart ssh
 
 # UFWの設定
-sudo ufw allow 2458/tcp
+sudo ufw allow OpenSSH
+sudo ufw allow 2375/tcp
 sudo ufw enable

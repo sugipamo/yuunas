@@ -68,17 +68,6 @@ def show_version():
     """ツールのバージョン情報を表示する"""
     print(f"commands.py version: {VERSION}")
 
-def validate_args(command_name, args):
-    """コマンドの引数を検証する"""
-    if command_name in ["commit"]:
-        if len(args) < 1:
-            logging.error("Commit message is required.")
-            sys.exit(1)
-    elif command_name in ["generate"]:
-        if len(args) < 2:
-            logging.error("Both certificate and DH parameters files are required.")
-            sys.exit(1)
-
 def main():
     if len(sys.argv) < 2:
         print("Usage: python commands.py [command] [args...]", file=sys.stderr)
@@ -96,7 +85,6 @@ def main():
     elif command_name == "version":
         show_version()
     elif command_name in COMMANDS:
-        validate_args(command_name, args)
         run_command(command_name, args)
     else:
         logging.error(f"Invalid command: {command_name}")
