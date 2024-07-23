@@ -5,7 +5,7 @@ def execute():
     """Docker Compose downを実行する"""
     try:
         result = subprocess.run(
-            ['docker-compose', 'down'],
+            ['docker', 'compose', 'down'],
             check=True,
             text=True,
             capture_output=True
