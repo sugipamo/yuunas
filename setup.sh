@@ -34,10 +34,7 @@ sudo systemctl start ssh
 sudo systemctl enable ssh
 
 # インターネット接続が確認できるネットワークインターフェースを取得
-INTERFACE="enp0s3" # インターフェース名を適切に設定
-
-# ゲートウェイアドレスの取得
-GATEWAY4="192.168.0.1" # 適切なゲートウェイアドレスに設定
+INTERFACE="enp0s3" 
 
 # 静的IPの設定
 NETPLAN_CONFIG="/etc/netplan/99-netcfg.yaml"
@@ -53,12 +50,13 @@ network:
     $INTERFACE:
       addresses:
         - 192.168.1.100/24
-      gateway4: $GATEWAY4
       nameservers:
         addresses:
           - 8.8.8.8
           - 8.8.4.4
 EOF"
+
+chmod 600 $NETPLAN_CONFIG
 
 # 設定の適用
 sudo netplan apply
