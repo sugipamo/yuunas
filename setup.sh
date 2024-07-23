@@ -48,6 +48,7 @@ network:
   version: 2
   ethernets:
     $INTERFACE:
+      dhcp4: false
       addresses:
         - 192.168.1.100/24
       nameservers:
