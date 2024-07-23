@@ -1,13 +1,16 @@
 #!/bin/bash
 
+set -e  # スクリプトのエラーチェックを有効にする
+
 # 更新と基本パッケージのインストール
 sudo apt update
 sudo apt upgrade -y
 sudo apt install -y curl gnupg lsb-release
 
 # Dockerのインストール
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo tee /etc/apt/keyrings/docker.asc
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 sudo apt update
 sudo apt install -y docker-ce docker-ce-cli containerd.io
 sudo systemctl start docker
@@ -38,44 +41,15 @@ sudo sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' $SSHD_CO
 sudo sed -i 's/#PermitEmptyPasswords no/PermitEmptyPasswords no/' $SSHD_CONFIG
 sudo sed -i 's/#ChallengeResponseAuthentication yes/ChallengeResponseAuthentication no/' $SSHD_CONFIG
 
+# IPv6のみをリッスンするように設定
+echo "AddressFamily inet6" | sudo tee -a $SSHD_CONFIG
+
 # 設定を反映
 sudo systemctl restart ssh
 
-# 静的IPの設定
-NETPLAN_CONFIG="/etc/netplan/01-netcfg.yaml"
-
-# 現在のネットワークインターフェース名を取得
-INTERFACE=$(ip link show | grep -oP '(?<=: )[a-zA-Z0-9_-]+(?=:)' | head -n 1)
-
-if [ -z "$INTERFACE" ]; then
-    echo "No network interface found. Please check your network setup."
-    exit 1
-fi
-
-# 設定ファイルのバックアップ
-sudo cp $NETPLAN_CONFIG ${NETPLAN_CONFIG}.bak
-
-# 静的IPアドレスの設定
-sudo bash -c "cat > $NETPLAN_CONFIG <<EOF
-network:
-  version: 2
-  ethernets:
-    $INTERFACE:
-      addresses:
-        - 192.168.1.100/24
-      gateway4: 192.168.1.1
-      nameservers:
-        addresses:
-          - 8.8.8.8
-          - 8.8.4.4
-EOF"
-
-# 設定の適用
-sudo netplan apply
-
 # Gitリポジトリのクローン
 REPO_URL="https://github.com/sugipamo/yuunas"
-CLONE_DIR="~/yuunas_work"
+CLONE_DIR="$HOME/yuunas_work"
 
 # クローン先ディレクトリが存在しない場合のみクローン
 if [ ! -d "$CLONE_DIR" ]; then
@@ -85,8 +59,60 @@ else
 fi
 
 # ディレクトリと設定ファイルの準備（オプション）
-mkdir -p ~/yuunas_work/certs
-touch ~/yuunas_work/certs/nginx-selfsigned.crt
-touch ~/yuunas_work/certs/nginx-selfsigned.key
+mkdir -p $HOME/yuunas_work/certs
+touch $HOME/yuunas_work/certs/nginx-selfsigned.crt
+touch $HOME/yuunas_work/certs/nginx-selfsigned.key
+
+# UFWの設定
+sudo ufw allow OpenSSH
+
+# ネットワーク設定のバックアップと変更
+NETPLAN_CONFIG="/etc/netplan/01-netcfg.yaml"
+NM_CONFIG="/etc/NetworkManager/NetworkManager.conf"
+
+# ネットワーク設定ファイルのバックアップ
+if [ -f "$NETPLAN_CONFIG" ]; then
+    sudo cp $NETPLAN_CONFIG ${NETPLAN_CONFIG}.bak
+fi
+if [ -f "$NM_CONFIG" ]; then
+    sudo cp $NM_CONFIG ${NM_CONFIG}.bak
+fi
+
+# 現在のネットワークインターフェース名を取得
+INTERFACE=$(ip link show | grep -oP '(?<=: )[a-zA-Z0-9_-]+(?=:)' | head -n 1)
+
+if [ -z "$INTERFACE" ]; then
+    echo "No network interface found. Please check your network setup."
+    exit 1
+fi
+
+# 静的IPアドレスの設定
+sudo bash -c "cat > $NETPLAN_CONFIG <<EOF
+network:
+  version: 2
+  ethernets:
+    $INTERFACE:
+      addresses:
+        - 192.168.1.100/24
+        - 2001:db8::100/64
+      gateway4: 192.168.1.1
+      gateway6: 2001:db8::1
+      nameservers:
+        addresses:
+          - 8.8.8.8
+          - 8.8.4.4
+          - 2001:4860:4860::8888
+          - 2001:4860:4860::8844
+EOF"
+
+# NetworkManagerの設定（オプション）
+echo -e "[main]\nplugins=ifupdown,keyfile\n[ifupdown]\nmanaged=false" | sudo tee $NM_CONFIG
+
+# ネットワーク設定の適用
+sudo netplan apply
+sudo systemctl restart NetworkManager
+
+# UFWを有効にする
+sudo ufw enable
 
 echo "Setup complete. Please log out and log back in for Docker group changes to take effect."
