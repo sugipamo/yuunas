@@ -1,16 +1,13 @@
 #!/bin/bash
 
-set -e  # スクリプトのエラーチェックを有効にする
-
 # 更新と基本パッケージのインストール
 sudo apt update
 sudo apt upgrade -y
 sudo apt install -y curl gnupg lsb-release
 
 # Dockerのインストール
-sudo mkdir -p /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo tee /etc/apt/keyrings/docker.asc
-echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
 sudo apt update
 sudo apt install -y docker-ce docker-ce-cli containerd.io
 sudo systemctl start docker
@@ -47,44 +44,29 @@ echo "AddressFamily inet6" | sudo tee -a $SSHD_CONFIG
 # 設定を反映
 sudo systemctl restart ssh
 
-# Gitリポジトリのクローン
-REPO_URL="https://github.com/sugipamo/yuunas"
-CLONE_DIR="$HOME/yuunas_work"
+# Pythonのインストール
+sudo apt install -y python3 python3-pip python3-venv
 
-# クローン先ディレクトリが存在しない場合のみクローン
-if [ ! -d "$CLONE_DIR" ]; then
-    git clone $REPO_URL $CLONE_DIR
-else
-    echo "Directory $CLONE_DIR already exists. Skipping git clone."
-fi
-
-# ディレクトリと設定ファイルの準備（オプション）
-mkdir -p $HOME/yuunas_work/certs
-touch $HOME/yuunas_work/certs/nginx-selfsigned.crt
-touch $HOME/yuunas_work/certs/nginx-selfsigned.key
-
-# UFWの設定
-sudo ufw allow OpenSSH
-
-# ネットワーク設定のバックアップと変更
+# 静的IPの設定
 NETPLAN_CONFIG="/etc/netplan/01-netcfg.yaml"
-NM_CONFIG="/etc/NetworkManager/NetworkManager.conf"
-
-# ネットワーク設定ファイルのバックアップ
-if [ -f "$NETPLAN_CONFIG" ]; then
-    sudo cp $NETPLAN_CONFIG ${NETPLAN_CONFIG}.bak
-fi
-if [ -f "$NM_CONFIG" ]; then
-    sudo cp $NM_CONFIG ${NM_CONFIG}.bak
-fi
 
 # 現在のネットワークインターフェース名を取得
-INTERFACE=$(ip link show | grep -oP '(?<=: )[a-zA-Z0-9_-]+(?=:)' | head -n 1)
+echo "Please select a network interface for static IP configuration:"
+select INTERFACE in $(ip link show | grep -oP '(?<=: )[a-zA-Z0-9_-]+(?=:)' | grep -v lo); do
+    if [ -n "$INTERFACE" ]; then
+        break
+    else
+        echo "Invalid selection. Please try again."
+    fi
+done
 
 if [ -z "$INTERFACE" ]; then
-    echo "No network interface found. Please check your network setup."
+    echo "No network interface selected. Please check your network setup."
     exit 1
 fi
+
+# 設定ファイルのバックアップ
+sudo cp $NETPLAN_CONFIG ${NETPLAN_CONFIG}.bak
 
 # 静的IPアドレスの設定
 sudo bash -c "cat > $NETPLAN_CONFIG <<EOF
@@ -105,14 +87,33 @@ network:
           - 2001:4860:4860::8844
 EOF"
 
-# NetworkManagerの設定（オプション）
-echo -e "[main]\nplugins=ifupdown,keyfile\n[ifupdown]\nmanaged=false" | sudo tee $NM_CONFIG
-
-# ネットワーク設定の適用
+# 設定の適用
 sudo netplan apply
+
+# NetworkManagerの設定（オプション）
+NM_CONFIG="/etc/NetworkManager/NetworkManager.conf"
+sudo cp $NM_CONFIG ${NM_CONFIG}.bak
+echo -e "[main]\nplugins=ifupdown,keyfile\n[ifupdown]\nmanaged=false" | sudo tee $NM_CONFIG
 sudo systemctl restart NetworkManager
 
-# UFWを有効にする
+# Gitリポジトリのクローン
+REPO_URL="https://github.com/sugipamo/yuunas"
+CLONE_DIR="~/yuunas_work"
+
+# クローン先ディレクトリが存在しない場合のみクローン
+if [ ! -d "$CLONE_DIR" ]; then
+    git clone $REPO_URL $CLONE_DIR
+else
+    echo "Directory $CLONE_DIR already exists. Skipping git clone."
+fi
+
+# ディレクトリと設定ファイルの準備（オプション）
+mkdir -p ~/yuunas_work/certs
+touch ~/yuunas_work/certs/nginx-selfsigned.crt
+touch ~/yuunas_work/certs/nginx-selfsigned.key
+
+# UFWの設定
+sudo ufw allow OpenSSH
 sudo ufw enable
 
 echo "Setup complete. Please log out and log back in for Docker group changes to take effect."
