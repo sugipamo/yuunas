@@ -26,24 +26,6 @@ sudo apt install -y openssh-server
 sudo systemctl start ssh
 sudo systemctl enable ssh
 
-# sshdの設定変更
-SSHD_CONFIG="/etc/ssh/sshd_config"
-
-# 設定のバックアップ
-sudo cp $SSHD_CONFIG ${SSHD_CONFIG}.bak
-
-# 設定の変更
-sudo sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin no/' $SSHD_CONFIG
-sudo sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' $SSHD_CONFIG
-sudo sed -i 's/#PermitEmptyPasswords no/PermitEmptyPasswords no/' $SSHD_CONFIG
-sudo sed -i 's/#ChallengeResponseAuthentication yes/ChallengeResponseAuthentication no/' $SSHD_CONFIG
-
-# 設定を反映
-sudo systemctl restart ssh
-
-# 静的IPの設定
-NETPLAN_CONFIG="/etc/netplan/01-netcfg.yaml"
-
 # 現在のネットワークインターフェース名を取得
 INTERFACE=$(ip link show | grep -oP '(?<=: )[a-zA-Z0-9_-]+(?=:)' | head -n 1)
 
@@ -54,17 +36,14 @@ fi
 
 # ゲートウェイアドレスの取得
 GATEWAY4=$(ip route | grep default | grep -oP '(?<=default via )[0-9.]+')
-GATEWAY6=$(ip -6 route | grep default | grep -oP '(?<=default via )[a-fA-F0-9:]+')
 
 if [ -z "$GATEWAY4" ]; then
     echo "No IPv4 gateway found. Please check your network setup."
     exit 1
 fi
 
-if [ -z "$GATEWAY6" ]; then
-    echo "No IPv6 gateway found. Please check your network setup."
-    exit 1
-fi
+# 静的IPの設定
+NETPLAN_CONFIG="/etc/netplan/01-netcfg.yaml"
 
 # 設定ファイルのバックアップ
 sudo cp $NETPLAN_CONFIG ${NETPLAN_CONFIG}.bak
@@ -102,6 +81,21 @@ fi
 mkdir -p ~/yuunas_work/certs
 touch ~/yuunas_work/certs/nginx-selfsigned.crt
 touch ~/yuunas_work/certs/nginx-selfsigned.key
+
+# sshdの設定変更
+SSHD_CONFIG="/etc/ssh/sshd_config"
+
+# 設定のバックアップ
+sudo cp $SSHD_CONFIG ${SSHD_CONFIG}.bak
+
+# 設定の変更
+sudo sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin no/' $SSHD_CONFIG
+sudo sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' $SSHD_CONFIG
+sudo sed -i 's/#PermitEmptyPasswords no/PermitEmptyPasswords no/' $SSHD_CONFIG
+sudo sed -i 's/#ChallengeResponseAuthentication yes/ChallengeResponseAuthentication no/' $SSHD_CONFIG
+
+# 設定を反映
+sudo systemctl restart ssh
 
 # UFWの設定
 sudo ufw allow OpenSSH
