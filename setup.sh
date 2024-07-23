@@ -55,6 +55,14 @@ sudo systemctl restart ssh
 # 静的IPの設定
 NETPLAN_CONFIG="/etc/netplan/01-netcfg.yaml"
 
+# 現在のネットワークインターフェース名を取得
+INTERFACE=$(ip link show | grep -oP '(?<=: )[a-zA-Z0-9_-]+(?=:)' | head -n 1)
+
+if [ -z "$INTERFACE" ]; then
+    echo "No network interface found. Please check your network setup."
+    exit 1
+fi
+
 # 設定ファイルのバックアップ
 sudo cp $NETPLAN_CONFIG ${NETPLAN_CONFIG}.bak
 
@@ -79,6 +87,17 @@ EOF"
 
 # 設定の適用
 sudo netplan apply
+
+# パーミッションの設定
+sudo chmod 644 $NETPLAN_CONFIG
+
+# 適用後のネットワーク設定を確認
+echo "Netplan configuration:"
+cat $NETPLAN_CONFIG
+
+# インターフェースの状態を確認
+echo "Network interfaces status:"
+ip a
 
 # NetworkManagerの設定（オプション）
 NM_CONFIG="/etc/NetworkManager/NetworkManager.conf"
