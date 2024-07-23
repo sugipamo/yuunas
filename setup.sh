@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# エラーハンドリング
-set -e
-
 # 更新と基本パッケージのインストール
 sudo apt update
 sudo apt upgrade -y
@@ -76,13 +73,20 @@ EOF"
 # 設定の適用
 sudo netplan apply
 
-# ディレクトリと設定ファイルの準備（オプション）
-mkdir -p ~/my_project/certs
-touch ~/my_project/certs/nginx-selfsigned.crt
-touch ~/my_project/certs/nginx-selfsigned.key
+# Gitリポジトリのクローン
+REPO_URL="https://github.com/sugipamo/yuunas"
+CLONE_DIR="~/yuunas_work"
 
-# ファイアウォールの設定
-sudo ufw allow OpenSSH
-sudo ufw enable
+# クローン先ディレクトリが存在しない場合のみクローン
+if [ ! -d "$CLONE_DIR" ]; then
+    git clone $REPO_URL $CLONE_DIR
+else
+    echo "Directory $CLONE_DIR already exists. Skipping git clone."
+fi
+
+# ディレクトリと設定ファイルの準備（オプション）
+mkdir -p ~/yuunas_work/certs
+touch ~/yuunas_work/certs/nginx-selfsigned.crt
+touch ~/yuunas_work/certs/nginx-selfsigned.key
 
 echo "Setup complete. Please log out and log back in for Docker group changes to take effect."
