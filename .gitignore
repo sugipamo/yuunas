@@ -1,0 +1,15 @@
+# Docker volumes
+volumes/
+
+# SSL/TLS certificates (if sensitive)
+certs/
+
+# Environment variable files
+.env
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Python-specific files
+__pycache__/
