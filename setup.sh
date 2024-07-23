@@ -41,7 +41,6 @@ network:
       dhcp4: false
       addresses:
         - 192.168.0.100/24
-      gateway4: 192.168.0.1
       nameservers:
         addresses:
           - 192.168.0.1
@@ -50,7 +49,6 @@ network:
       dhcp6: false
       addresses:
         - 2001:db8::100/64
-      gateway6: 2001:db8::1
       nameservers:
         addresses:
           - 2001:4860:4860::8888
