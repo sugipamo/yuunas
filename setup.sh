@@ -38,6 +38,10 @@ fi
 
 echo "Using network interface: $INTERFACE"
 
+# 自動的にゲートウェイアドレスを取得
+GATEWAY4=$(ip route | grep default | awk '{print $3}')
+GATEWAY6=$(ip -6 route | grep default | awk '{print $3}')
+
 # 更新と基本パッケージのインストール
 sudo apt update
 sudo apt upgrade -y
