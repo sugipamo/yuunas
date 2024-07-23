@@ -3,27 +3,6 @@
 # 更新と基本パッケージのインストール
 sudo apt update
 sudo apt upgrade -y
-sudo apt install -y curl gnupg lsb-release
-
-# Dockerのリポジトリを追加
-DOCKER_LIST_FILE="/etc/apt/sources.list.d/docker.list"
-echo "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee $DOCKER_LIST_FILE
-
-# DockerのGPGキーを追加
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-
-# パッケージリストの更新
-sudo apt update
-
-# Dockerのインストール
-sudo apt install -y docker-ce docker-ce-cli containerd.io
-sudo systemctl start docker
-sudo systemctl enable docker
-sudo usermod -aG docker $USER
-
-# Docker Composeのインストール
-sudo curl -L "https://github.com/docker/compose/releases/download/2.18.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-sudo chmod +x /usr/local/bin/docker-compose
 
 # Gitのインストール
 sudo apt install -y git
@@ -87,5 +66,3 @@ sudo systemctl restart ssh
 # UFWの設定
 sudo ufw allow OpenSSH
 sudo ufw enable
-
-echo "Setup complete. Please log out and log back in for Docker group changes to take effect."
