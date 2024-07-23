@@ -1,12 +1,42 @@
 #!/bin/bash
 
-# ネットワークインターフェース名の引数チェック
-if [ -z "$1" ]; then
-    echo "Usage: $0 <network_interface>"
+# 引数の処理
+GATEWAY4=""
+GATEWAY6=""
+
+while getopts ":4:6:" opt; do
+  case $opt in
+    4)
+      GATEWAY4=$OPTARG
+      ;;
+    6)
+      GATEWAY6=$OPTARG
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      exit 1
+      ;;
+  esac
+done
+
+shift $((OPTIND-1))
+
+# インターネット接続が確認できるネットワークインターフェースを取得
+INTERFACE=""
+
+for iface in $(ip link show | grep -oP '(?<=: )[a-zA-Z0-9_-]+(?=:)' | head -n 10); do
+    if ping -c 1 -I $iface 8.8.8.8 &> /dev/null; then
+        INTERFACE=$iface
+        break
+    fi
+done
+
+if [ -z "$INTERFACE" ]; then
+    echo "No network interface with internet access found. Please check your network setup."
     exit 1
 fi
 
-INTERFACE="$1"
+echo "Using network interface: $INTERFACE"
 
 # 更新と基本パッケージのインストール
 sudo apt update
@@ -67,8 +97,8 @@ network:
       addresses:
         - 192.168.1.100/24
         - 2001:db8::100/64
-      gateway4: 192.168.1.1
-      gateway6: 2001:db8::1
+      gateway4: $GATEWAY4
+      gateway6: $GATEWAY6
       nameservers:
         addresses:
           - 8.8.8.8
@@ -79,17 +109,6 @@ EOF"
 
 # 設定の適用
 sudo netplan apply
-
-# パーミッションの設定
-sudo chmod 644 $NETPLAN_CONFIG
-
-# 適用後のネットワーク設定を確認
-echo "Netplan configuration:"
-cat $NETPLAN_CONFIG
-
-# インターフェースの状態を確認
-echo "Network interfaces status:"
-ip a
 
 # Gitリポジトリのクローン
 REPO_URL="https://github.com/sugipamo/yuunas"
@@ -110,8 +129,5 @@ touch ~/yuunas_work/certs/nginx-selfsigned.key
 # UFWの設定
 sudo ufw allow OpenSSH
 sudo ufw enable
-
-# Pythonのインストール
-sudo apt install -y python3 python3-pip
 
 echo "Setup complete. Please log out and log back in for Docker group changes to take effect."
