@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# ネットワークインターフェース名の引数チェック
+if [ -z "$1" ]; then
+    echo "Usage: $0 <network_interface>"
+    exit 1
+fi
+
+INTERFACE="$1"
+
 # 更新と基本パッケージのインストール
 sudo apt update
 sudo apt upgrade -y
@@ -44,26 +52,8 @@ echo "AddressFamily inet6" | sudo tee -a $SSHD_CONFIG
 # 設定を反映
 sudo systemctl restart ssh
 
-# Pythonのインストール
-sudo apt install -y python3 python3-pip python3-venv
-
 # 静的IPの設定
 NETPLAN_CONFIG="/etc/netplan/01-netcfg.yaml"
-
-# 現在のネットワークインターフェース名を取得
-echo "Please select a network interface for static IP configuration:"
-select INTERFACE in $(ip link show | grep -oP '(?<=: )[a-zA-Z0-9_-]+(?=:)' | grep -v lo); do
-    if [ -n "$INTERFACE" ]; then
-        break
-    else
-        echo "Invalid selection. Please try again."
-    fi
-done
-
-if [ -z "$INTERFACE" ]; then
-    echo "No network interface selected. Please check your network setup."
-    exit 1
-fi
 
 # 設定ファイルのバックアップ
 sudo cp $NETPLAN_CONFIG ${NETPLAN_CONFIG}.bak
@@ -115,5 +105,8 @@ touch ~/yuunas_work/certs/nginx-selfsigned.key
 # UFWの設定
 sudo ufw allow OpenSSH
 sudo ufw enable
+
+# Pythonのインストール
+sudo apt install -y python3 python3-pip
 
 echo "Setup complete. Please log out and log back in for Docker group changes to take effect."
