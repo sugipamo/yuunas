@@ -55,7 +55,7 @@ chmod 600 $NETPLAN_CONFIG
 sudo netplan apply
 
 # sshdの設定変更
-SSHD_CONFIG="/etc/ssh/sshd_config"
+SSHD_CONFIG="/etc/ssh/sshd_config.d/50-cloud-init.conf"
 
 # 設定のバックアップ
 sudo cp $SSHD_CONFIG ${SSHD_CONFIG}.bak
