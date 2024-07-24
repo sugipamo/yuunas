@@ -9,12 +9,9 @@ def execute():
 
     message = sys.argv[2]
     try:
-        result = subprocess.run(
-            ['git', 'commit', '-m', message],
-            check=True,
-            text=True,
-            capture_output=True
+        subprocess.call(
+            "git commit -m " + message,
+            shell=True,
         )
-        print(result.stdout)
     except subprocess.CalledProcessError as e:
         print(e.stderr, file=sys.stderr)
