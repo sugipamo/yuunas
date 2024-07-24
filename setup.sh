@@ -4,18 +4,20 @@
 sudo apt update
 sudo apt upgrade -y
 
-# Gitのインストール
-sudo apt install -y git
-
 # OpenSSHサーバーのインストール
 sudo apt install -y openssh-server
 sudo systemctl start ssh
 sudo systemctl enable ssh
 
-# インターネット接続が確認できるネットワークインターフェースを取得
-INTERFACE="enp0s3" 
+# 使用可能なネットワークインターフェースを取得
+INTERFACE=$(ip -o -4 route show to default | awk '{print $5}')
 
-# 静的IPの設定
+# ネットワークインターフェースが取得できない場合のエラーハンドリング
+if [ -z "$INTERFACE" ]; then
+  echo "Error: Could not find a network interface."
+  exit 1
+fi
+
 NETPLAN_CONFIG="/etc/netplan/99_config.yaml"
 
 # 設定ファイルのバックアップ
@@ -27,7 +29,7 @@ network:
   version: 2
   renderer: networkd
   ethernets:
-    enp0s3:
+    $INTERFACE:
       dhcp4: false
       dhcp6: false
       addresses:
@@ -52,17 +54,6 @@ chmod 600 $NETPLAN_CONFIG
 # 設定の適用
 sudo netplan apply
 
-# Gitリポジトリのクローン
-REPO_URL="https://github.com/sugipamo/yuunas"
-CLONE_DIR="~/yuunas_work"
-
-# クローン先ディレクトリが存在しない場合のみクローン
-if [ ! -d "$CLONE_DIR" ]; then
-    git clone $REPO_URL $CLONE_DIR
-else
-    echo "Directory $CLONE_DIR already exists. Skipping git clone."
-fi
-
 # sshdの設定変更
 SSHD_CONFIG="/etc/ssh/sshd_config"
 
@@ -72,7 +63,7 @@ sudo cp $SSHD_CONFIG ${SSHD_CONFIG}.bak
 sudo bash -c "cat >> $SSHD_CONFIG <<EOF
 Port 2458
 # AddressFamily inet6
-# ListenAddress ::
+ListenAddress ::
 
 PermitRootLogin no
 PasswordAuthentication yes
