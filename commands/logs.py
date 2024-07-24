@@ -2,10 +2,10 @@ import subprocess
 import sys
 
 def execute():
-    """Gitステータスを表示する"""
+    """Docker Compose upを実行する"""
     try:
         subprocess.call(
-            "git status",
+            "docker-compose logs",
             shell=True,
         )
     except subprocess.CalledProcessError as e:
