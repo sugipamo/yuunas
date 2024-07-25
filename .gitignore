@@ -13,3 +13,6 @@ Thumbs.db
 
 # Python-specific files
 __pycache__/
+
+
+nextcloud/

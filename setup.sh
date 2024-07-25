@@ -64,7 +64,6 @@ sudo bash -c "cat >> $SSHD_CONFIG <<EOF
 Port 2458
 # AddressFamily inet6
 ListenAddress ::
-
 PermitRootLogin no
 PasswordAuthentication yes
 PermitEmptyPasswords no
@@ -78,5 +77,9 @@ sudo systemctl restart ssh
 sudo ufw allow OpenSSH
 sudo ufw allow 2458/tcp
 sudo ufw enable
+
+# ローカルドメインの設定
+LOCAL_HOSTS="/etc/hosts"
+sudo bash -c "echo '192.168.0.100 nextcloud.home' >> $LOCAL_HOSTS"
 
 sudo reboot now
